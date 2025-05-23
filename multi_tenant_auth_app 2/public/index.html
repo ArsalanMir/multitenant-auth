@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Multi-Tenant Login</title>
+</head>
+<body>
+  <h2>Tenant Login</h2>
+
+  <form id="loginForm">
+    <label>Email:</label><br>
+    <input type="email" id="email"><br><br>
+    <label>Password:</label><br>
+    <input type="password" id="password"><br><br>
+    <button type="submit">Login</button>
+  </form>
+
+  <div id="afterLogin" style="display: none;">
+    <h3>You're logged in!</h3>
+    <button id="fetchData">Fetch Mongo Data</button>
+    <pre id="result"></pre>
+  </div>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const hostname = window.location.hostname;
+      const subdomain = hostname.split('.')[0];
+
+      const response = await fetch("http://" + hostname + ":3000/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, tenantId: subdomain })
+      });
+
+      const data = await response.json();
+
+      if (data.token) {
+        alert("Login successful. Token: " + data.token);
+        localStorage.setItem("token", data.token);
+        document.getElementById("afterLogin").style.display = "block";
+      } else {
+        alert("Login failed: " + (data.error || "Unknown error"));
+      }
+    });
+
+    document.getElementById("fetchData").addEventListener("click", async function () {
+      const token = localStorage.getItem("token");
+      const hostname = window.location.hostname;
+
+      const response = await fetch("http://" + hostname + ":3000/multie", {
+        headers: {
+          Authorization: "Bearer " + token
+        }
+      });
+
+      const result = await response.json();
+      document.getElementById("result").textContent = JSON.stringify(result, null, 2);
+    });
+  </script>
+</body>
+</html>
